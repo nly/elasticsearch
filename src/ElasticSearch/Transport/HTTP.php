@@ -52,6 +52,21 @@ class HTTP extends Base {
     }
 
     /**
+     * Update a part of a document
+     *
+     * @return array
+     *
+     * @param array $partialDocument
+     * @param mixed $id
+     * @param array $options
+     */
+    public function update($partialDocument, $id, array $options = array()) {
+        $url = $this->buildUrl(array($this->type, $id), $options);
+
+        return $this->call($url, "POST", array('doc' => $partialDocument));
+    }
+
+    /**
      * Search
      *
      * @return array
@@ -65,14 +80,14 @@ class HTTP extends Base {
              * Array implies using the JSON query DSL
              */
             $arg = "_search";
-            if(isset($options['routing'])) {
-                $arg = "_search?routing=" . $options['routing'];
-            }
-            
-            $url = $this->buildUrl(array(
-                $this->type, $arg
-            ));
-            
+            /**
+             * $options may contain values like:
+             * $options['routing'] = 'user123'
+             * or
+             * $options['preference'] = 'xyzabc123'
+             */
+            $url = $this->buildUrl(array($this->type, $arg), $options);
+
             $result = $this->call($url, "GET", $query);
         }
         elseif (is_string($query)) {
@@ -218,8 +233,12 @@ class HTTP extends Base {
                     break;
                 default:
                     $error = "Unknown error";
-                    if ($errno == 0)
+                    if ($errno == 0) {
                         $error .= ". Non-cUrl error";
+                    } else {
+                        $errstr = curl_error($conn);
+                        $error .= " ($errstr)";
+                    }
                     break;
             }
             $exception = new HTTPException($error);
